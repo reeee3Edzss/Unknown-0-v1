@@ -1,0 +1,328 @@
+--====================
+-- All-in-One GUI Script (Updated Kill Nearby)
+--====================
+local player = game.Players.LocalPlayer
+
+-- Create ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "Unknown-0 v1"
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Parent = gui
+mainFrame.Size = UDim2.new(0, 380, 0, 341)
+mainFrame.Position = UDim2.new(0.01, 0, 0.215, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Parent = mainFrame
+title.Size = UDim2.new(0, 305, 0, 34)
+title.Position = UDim2.new(0.096, 0, -0.102, 0)
+title.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+title.Text = "Unknown-0 v1 made by RedViper24446"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+
+--====================
+-- Drag Main Frame
+--====================
+do
+	local UIS = game:GetService("UserInputService")
+	local dragging, dragInput, dragStart, startPos
+
+	mainFrame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = mainFrame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	mainFrame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
+		end
+	end)
+
+	UIS.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+				startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+end
+
+--====================
+-- Helper function to create buttons
+--====================
+local function createButton(name, text, size, position, parent)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Parent = parent
+	button.Size = size
+	button.Position = position
+	button.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255,255,255)
+	return button
+end
+
+--====================
+-- God Mode
+--====================
+do
+	local godButton = createButton("GodMode","God Mode",UDim2.new(0,108,0,61),UDim2.new(0.684,0,0.123,0),mainFrame)
+	local function godMode()
+		local character = player.Character or player.CharacterAdded:Wait()
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.MaxHealth = math.huge
+		humanoid.Health = math.huge
+		while humanoid and humanoid.Health > 0 do
+			humanoid.Health = humanoid.MaxHealth
+			task.wait(0.5)
+		end
+	end
+	godButton.MouseButton1Click:Connect(godMode)
+end
+
+--====================
+-- Invisible
+--====================
+do
+	local invisibleButton = createButton("Invisible","Invisible",UDim2.new(0,108,0,69),UDim2.new(0.196,0,0.427,0),mainFrame)
+	local invisible = false
+	invisibleButton.MouseButton1Click:Connect(function()
+		local char = player.Character or player.CharacterAdded:Wait()
+		invisible = not invisible
+		for _, part in pairs(char:GetDescendants()) do
+			if part:IsA("BasePart") or part:IsA("Decal") then
+				part.Transparency = invisible and 1 or 0
+			end
+		end
+	end)
+end
+
+--====================
+-- Subspace Tripmine
+--====================
+do
+	local subspaceButton = createButton("SubspaceTripmine","Subspace Tripmine",UDim2.new(0,111,0,69),UDim2.new(0.024,0,0.71,0),mainFrame)
+	subspaceButton.MouseButton1Click:Connect(function()
+		local mouse = player:GetMouse()
+		local tripmineModelId = "rbxassetid://11999247"
+		local explosionRadius = 15
+		local explosionDamage = 100
+		local detectionLength = 30
+
+		mouse.Button1Down:Connect(function()
+			local model = game:GetObjects(tripmineModelId)[1]
+			model.Parent = workspace
+			model:MoveTo(mouse.Hit.Position)
+
+			local startAttachment = Instance.new("Attachment", model.PrimaryPart)
+			local laser = Instance.new("Beam")
+			laser.Attachment0 = startAttachment
+			laser.Color = ColorSequence.new(Color3.new(1,0,0))
+			laser.Width0 = 0.1
+			laser.Width1 = 0.1
+			laser.Parent = model
+
+			local endPart = Instance.new("Part")
+			endPart.Size = Vector3.new(0.2,0.2,0.2)
+			endPart.Transparency = 1
+			endPart.Anchored = true
+			endPart.CanCollide = false
+			endPart.Parent = workspace
+
+			local direction = model.PrimaryPart.CFrame.LookVector
+			endPart.CFrame = CFrame.new(model.PrimaryPart.Position + (direction * detectionLength))
+			local endAttachment = Instance.new("Attachment", endPart)
+			laser.Attachment1 = endAttachment
+
+			local connection
+			connection = game:GetService("RunService").Heartbeat:Connect(function()
+				for _, obj in pairs(workspace:GetDescendants()) do
+					if obj:IsA("BasePart") and obj.Parent:FindFirstChildOfClass("Humanoid") then
+						local hum = obj.Parent:FindFirstChildOfClass("Humanoid")
+						if hum and (obj.Position - model.PrimaryPart.Position).Magnitude < detectionLength then
+							local params = RaycastParams.new()
+							params.FilterDescendantsInstances = {model,endPart}
+							params.FilterType = Enum.RaycastFilterType.Blacklist
+							local ray = workspace:Raycast(model.PrimaryPart.Position,direction*detectionLength,params)
+							if ray and ray.Instance:IsDescendantOf(obj.Parent) then
+								local explosion = Instance.new("Explosion")
+								explosion.Position = model.PrimaryPart.Position
+								explosion.BlastRadius = explosionRadius
+								explosion.BlastPressure = 500000
+								explosion.DestroyJointRadiusPercent = 0
+								explosion.Parent = workspace
+								explosion.Hit:Connect(function(part)
+									local hum2 = part.Parent:FindFirstChildOfClass("Humanoid")
+									if hum2 then
+										hum2:TakeDamage(explosionDamage)
+									end
+								end)
+								model:Destroy()
+								endPart:Destroy()
+								connection:Disconnect()
+								break
+							end
+						end
+					end
+				end
+			end)
+		end)
+	end)
+end
+
+--====================
+-- Fly
+--====================
+do
+	local flyButton = createButton("Fly","Fly",UDim2.new(0,108,0,61),UDim2.new(0.024,0,0.124,0),mainFrame)
+	local flying = false
+	local bodyVelocity
+	local speed = 50
+
+	flyButton.MouseButton1Click:Connect(function()
+		local character = player.Character or player.CharacterAdded:Wait()
+		local hrp = character:WaitForChild("HumanoidRootPart")
+		local humanoid = character:WaitForChild("Humanoid")
+		flying = not flying
+		flyButton.Text = flying and "Fly: ON" or "Fly: OFF"
+		if flying then
+			humanoid.PlatformStand = true
+			bodyVelocity = Instance.new("BodyVelocity")
+			bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+			bodyVelocity.Velocity = Vector3.new(0,0,0)
+			bodyVelocity.Parent = hrp
+		else
+			humanoid.PlatformStand = false
+			if bodyVelocity then bodyVelocity:Destroy() end
+		end
+	end)
+end
+
+--====================
+-- Teleport
+--====================
+do
+	local teleportButton = createButton("Teleport","Teleport",UDim2.new(0,108,0,69),UDim2.new(0.687,0,0.71,0),mainFrame)
+	local teleportEnabled = false
+	local mouse = player:GetMouse()
+
+	teleportButton.MouseButton1Click:Connect(function()
+		teleportEnabled = not teleportEnabled
+		teleportButton.Text = teleportEnabled and "Teleport: ON" or "Teleport: OFF"
+	end)
+
+	mouse.Button1Down:Connect(function()
+		if teleportEnabled then
+			local character = player.Character or player.CharacterAdded:Wait()
+			local hrp = character:WaitForChild("HumanoidRootPart")
+			hrp.CFrame = CFrame.new(mouse.Hit.p + Vector3.new(0,5,0))
+		end
+	end)
+end
+
+--====================
+-- Firebrand Sword
+--====================
+do
+	local fireButton = createButton("Firebrand","Firebrand Sword",UDim2.new(0,108,0,61),UDim2.new(0.361,0,0.124,0),mainFrame)
+	fireButton.MouseButton1Click:Connect(function()
+		local model = game:GetObjects("rbxassetid://10516708958")[1]
+		model.Parent = player.Backpack
+	end)
+end
+
+--====================
+-- Speed
+--====================
+do
+	local speedButton = createButton("Speed","Speed OFF",UDim2.new(0,108,0,69),UDim2.new(0.361,0,0.399,0),mainFrame)
+	local speedEnabled = false
+	local speed = 500
+
+	speedButton.MouseButton1Click:Connect(function()
+		speedEnabled = not speedEnabled
+		if speedEnabled then
+			speedButton.Text = "Speed ON"
+			speedButton.BackgroundColor3 = Color3.fromRGB(70,150,200)
+		else
+			speedButton.Text = "Speed OFF"
+			speedButton.BackgroundColor3 = Color3.fromRGB(50,100,150)
+		end
+	end)
+
+	game:GetService("RunService").Heartbeat:Connect(function()
+		if speedEnabled then
+			local char = player.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				local hrp = char.HumanoidRootPart
+				local moveDir = char:FindFirstChild("Humanoid").MoveDirection
+				if moveDir.Magnitude > 0 then
+					hrp.Velocity = moveDir * speed
+				else
+					hrp.Velocity = Vector3.new(0, hrp.Velocity.Y,0)
+				end
+			end
+		end
+	end)
+end
+
+--====================
+-- Infinite Jump
+--====================
+do
+	local jumpButton = createButton("InfiniteJump","Infinite Jump: OFF",UDim2.new(0,111,0,69),UDim2.new(0.024,0,0.399,0),mainFrame)
+	local infiniteJumpEnabled = false
+	local uis = game:GetService("UserInputService")
+
+	jumpButton.MouseButton1Click:Connect(function()
+		infiniteJumpEnabled = not infiniteJumpEnabled
+		jumpButton.Text = infiniteJumpEnabled and "Infinite Jump: ON" or "Infinite Jump: OFF"
+	end)
+
+	uis.JumpRequest:Connect(function()
+		if infiniteJumpEnabled and player.Character and player.Character:FindFirstChild("Humanoid") then
+			player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+		end
+	end)
+end
+
+--====================
+-- Kill Nearby
+--====================
+do
+	local killButton = createButton("Kill","Kill Nearby",UDim2.new(0,108,0,69),UDim2.new(0.361,0,0.71,0),mainFrame)
+	local radius = 20 -- studs
+
+	killButton.MouseButton1Click:Connect(function()
+		local character = player.Character or player.CharacterAdded:Wait()
+		local hrp = character:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+			if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("Humanoid") and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				local otherHRP = otherPlayer.Character.HumanoidRootPart
+				local distance = (hrp.Position - otherHRP.Position).Magnitude
+				if distance <= radius then
+					otherPlayer.Character.Humanoid.Health = 0
+					print("Killed "..otherPlayer.Name.." within "..radius.." studs!")
+				end
+			end
+		end
+	end)
+end
